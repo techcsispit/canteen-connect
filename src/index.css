@@ -1,0 +1,70 @@
+:root {
+  --bg: #fbf7f2;
+  --surface: #ffffff;
+  --text: #2a211b;
+  --muted: #85766a;
+  --accent: #d9480f;
+  --border: #eadfd4;
+  --veg: #2b8a3e;
+  --non-veg: #c92a2a;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+button { font: inherit; cursor: pointer; }
+input, select { font: inherit; }
+
+.header {
+  position: sticky; top: 0; z-index: 1;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 20px; background: var(--accent); color: #fff;
+}
+.header h1 { margin: 0; font-size: 1.3rem; }
+.cart-button { background: #fff; color: var(--accent); border: none; border-radius: 99px; padding: 6px 14px; font-weight: 600; }
+.badge { background: var(--accent); color: #fff; border-radius: 99px; padding: 0 7px; margin-left: 4px; font-size: .85rem; }
+
+.page { max-width: 1040px; margin: 0 auto; padding: 16px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.toolbar input[type="search"] { flex: 1 1 220px; }
+.toolbar input, .toolbar select, .coupon { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.veg-toggle { display: flex; align-items: center; gap: 6px; padding: 0 6px; }
+
+.tabs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 16px; }
+.tab { border: 1px solid var(--border); background: var(--surface); border-radius: 99px; padding: 6px 14px; white-space: nowrap; }
+.tab.active { background: var(--text); color: #fff; border-color: var(--text); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.card { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.card.sold-out { opacity: .55; }
+.card-emoji { font-size: 3rem; text-align: center; padding: 18px 0; background: #fff4e6; }
+.card-body { padding: 12px 14px; display: flex; flex-direction: column; flex: 1; }
+.card h3 { margin: 0 0 4px; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
+.card p { margin: 0 0 12px; color: var(--muted); font-size: .88rem; flex: 1; }
+.card-footer { display: flex; justify-content: space-between; align-items: center; }
+.card-footer > button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 6px 16px; }
+.dot { width: 10px; height: 10px; border-radius: 2px; border: 2px solid; display: inline-block; flex-shrink: 0; }
+.dot.veg { border-color: var(--veg); background: radial-gradient(var(--veg) 40%, transparent 45%); }
+.dot.non-veg { border-color: var(--non-veg); background: radial-gradient(var(--non-veg) 40%, transparent 45%); }
+.muted, .empty { color: var(--muted); }
+
+.stepper { display: flex; align-items: center; gap: 8px; }
+.stepper button { width: 28px; height: 28px; border: 1px solid var(--accent); color: var(--accent); background: #fff; border-radius: 6px; }
+
+.overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .35); display: flex; justify-content: flex-end; z-index: 2; }
+.drawer { width: min(400px, 100%); height: 100%; background: var(--surface); padding: 18px; overflow-y: auto; }
+.drawer-header { display: flex; justify-content: space-between; align-items: center; }
+.drawer-header h2 { margin: 0; }
+.close { background: none; border: none; font-size: 1.6rem; }
+.lines { list-style: none; padding: 0; margin: 16px 0; }
+.lines li { display: grid; grid-template-columns: 1fr auto 60px; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.lines li > span:last-child { text-align: right; }
+.coupon { width: 100%; }
+.coupon-message { font-size: .85rem; color: var(--muted); }
+.bill { display: grid; grid-template-columns: 1fr auto; gap: 6px; margin: 16px 0; }
+.bill dd { margin: 0; text-align: right; }
+.bill .total { font-weight: 700; font-size: 1.1rem; }
+.place-order { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: 12px; font-weight: 600; }
+.placed { text-align: center; padding: 40px 0; }
