@@ -7,7 +7,7 @@ interface Props {
   cart: CartLine[];
   onChange: (id: number, delta: number) => void;
   onClose: () => void;
-  onOrderPlaced: () => void;
+  onOrderPlaced: (total: number) => void;
 }
 
 export default function Cart({ cart, onChange, onClose, onOrderPlaced }: Props) {
@@ -17,7 +17,7 @@ export default function Cart({ cart, onChange, onClose, onOrderPlaced }: Props) 
 
   function placeOrder() {
     setOrderNumber(Math.floor(1000 + Math.random() * 9000));
-    onOrderPlaced();
+    onOrderPlaced(bill.total);
   }
 
   return (
