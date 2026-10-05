@@ -50,7 +50,7 @@ export function filterMenu(items: MenuItem[], filters: Filters): MenuItem[] {
     (item) =>
       (filters.category === "All" || item.category === filters.category) &&
       (!filters.vegOnly || item.veg) &&
-      item.name.includes(filters.query),
+      item.name.toLowerCase().includes(filters.query.toLowerCase()),
   );
 }
 
