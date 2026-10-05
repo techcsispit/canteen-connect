@@ -18,8 +18,9 @@ describe("filterMenu", () => {
     expect(filterMenu(MENU, { ...all, vegOnly: true }).every((i) => i.veg)).toBe(true);
   });
 
-  it("finds items by name", () => {
+  it("finds items by name regardless of case", () => {
     expect(filterMenu(MENU, { ...all, query: "Dosa" }).map((i) => i.name)).toEqual(["Masala Dosa"]);
+    expect(filterMenu(MENU, { ...all, query: "dosa" }).map((i) => i.name)).toEqual(["Masala Dosa"]);
   });
 });
 
