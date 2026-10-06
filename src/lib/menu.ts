@@ -55,7 +55,7 @@ export function filterMenu(items: MenuItem[], filters: Filters): MenuItem[] {
 }
 
 export function sortMenu(items: MenuItem[], order: SortOrder): MenuItem[] {
-  if (order === "price-low") return items.sort((a, b) => a.price - b.price);
-  if (order === "price-high") return items.sort((a, b) => b.price - a.price);
-  return items;
+  if (order === "price-low") return [...items].sort((a, b) => a.price - b.price);
+  if (order === "price-high") return [...items].sort((a, b) => b.price - a.price);
+  return [...items];
 }
