@@ -32,7 +32,7 @@ export function discountFor(subtotal: number, coupon: Coupon | undefined): numbe
   if (coupon.kind === "flat") {
     return subtotal >= coupon.minOrder ? Math.min(coupon.amount, subtotal) : 0;
   }
-  return Math.round((subtotal * coupon.percent) / 100);
+  return Math.min(Math.round((subtotal * coupon.percent) / 100), coupon.maxDiscount);
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;

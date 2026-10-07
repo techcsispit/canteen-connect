@@ -24,6 +24,11 @@ describe("coupons", () => {
     expect(discountFor(300, findCoupon("SAVE10"))).toBe(30);
   });
 
+  it("SAVE10 never discounts more than ₹100", () => {
+    expect(discountFor(1120, findCoupon("SAVE10"))).toBe(100);
+    expect(discountFor(1400, findCoupon("SAVE10"))).toBe(100);
+  });
+
   it("unknown coupons do nothing", () => {
     expect(findCoupon("FREEFOOD")).toBeUndefined();
   });
