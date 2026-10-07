@@ -26,9 +26,22 @@ describe("filterMenu", () => {
 
 describe("sortMenu", () => {
   it("sorts by price", () => {
-    const low = sortMenu([...MENU], "price-low").map((i) => i.price);
+    const low = sortMenu(MENU, "price-low").map((i) => i.price);
     expect(low).toEqual([...low].sort((a, b) => a - b));
-    const high = sortMenu([...MENU], "price-high").map((i) => i.price);
+    const high = sortMenu(MENU, "price-high").map((i) => i.price);
     expect(high).toEqual([...high].sort((a, b) => b - a));
+  });
+
+  it("does not modify the original menu", () => {
+    const original = MENU.map((i) => i.id);
+    sortMenu(MENU, "price-low");
+    sortMenu(MENU, "price-high");
+    expect(MENU.map((i) => i.id)).toEqual(original);
+  });
+
+  it("restores the original order when switching back to recommended", () => {
+    const original = MENU.map((i) => i.id);
+    sortMenu(MENU, "price-low");
+    expect(sortMenu(MENU, "recommended").map((i) => i.id)).toEqual(original);
   });
 });
