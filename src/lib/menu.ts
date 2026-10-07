@@ -21,6 +21,8 @@ export interface Filters {
 
 export const CATEGORIES: (Category | "All")[] = ["All", "Snacks", "Meals", "Beverages", "Desserts"];
 
+const normalizeSearchText = (text: string) => text.trim().replace(/\s+/g, " ").toLowerCase();
+
 // Listed in "recommended" order: our most popular items first.
 export const MENU: MenuItem[] = [
   { id: 1, name: "Masala Dosa", category: "Meals", price: 60, veg: true, emoji: "🥞", description: "Crispy dosa with potato masala, chutney and sambar", available: true },
@@ -46,11 +48,12 @@ export const MENU: MenuItem[] = [
 ];
 
 export function filterMenu(items: MenuItem[], filters: Filters): MenuItem[] {
+  const query = normalizeSearchText(filters.query);
   return items.filter(
     (item) =>
       (filters.category === "All" || item.category === filters.category) &&
       (!filters.vegOnly || item.veg) &&
-      item.name.includes(filters.query),
+      normalizeSearchText(item.name).includes(query),
   );
 }
 

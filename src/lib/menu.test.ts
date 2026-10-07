@@ -18,8 +18,14 @@ describe("filterMenu", () => {
     expect(filterMenu(MENU, { ...all, vegOnly: true }).every((i) => i.veg)).toBe(true);
   });
 
-  it("finds items by name", () => {
-    expect(filterMenu(MENU, { ...all, query: "Dosa" }).map((i) => i.name)).toEqual(["Masala Dosa"]);
+  it("finds items by name regardless of capitalization", () => {
+    expect(filterMenu(MENU, { ...all, query: "dosa" }).map((i) => i.name)).toEqual(["Masala Dosa"]);
+  });
+
+  it("ignores extra spaces in searches", () => {
+    expect(filterMenu(MENU, { ...all, query: "  Masala   Dosa  " }).map((i) => i.name)).toEqual([
+      "Masala Dosa",
+    ]);
   });
 });
 
