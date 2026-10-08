@@ -22,6 +22,12 @@ describe("filterMenu", () => {
     expect(filterMenu(MENU, { ...all, query: "Dosa" }).map((i) => i.name)).toEqual(["Masala Dosa"]);
     expect(filterMenu(MENU, { ...all, query: "dosa" }).map((i) => i.name)).toEqual(["Masala Dosa"]);
   });
+
+  it("ignores extra spaces in searches", () => {
+    expect(filterMenu(MENU, { ...all, query: "  Masala   Dosa  " }).map((i) => i.name)).toEqual([
+      "Masala Dosa",
+    ]);
+  });
 });
 
 describe("sortMenu", () => {
