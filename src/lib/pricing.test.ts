@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { addToCart, changeQty, itemCount } from "./cart";
 import { MENU } from "./menu";
-import { calculateBill, discountFor, findCoupon } from "./pricing";
+import { bestCouponFor, calculateBill, couponOptionsFor, discountFor, findCoupon } from "./pricing";
 
 describe("cart", () => {
   it("adds and removes items", () => {
@@ -31,6 +31,35 @@ describe("coupons", () => {
 
   it("unknown coupons do nothing", () => {
     expect(findCoupon("FREEFOOD")).toBeUndefined();
+  });
+
+  it("shows coupon eligibility, shortfall and current savings", () => {
+    expect(couponOptionsFor(150)).toEqual([
+      {
+        code: "FLAT50",
+        description: "₹50 off on orders of ₹200 or more",
+        eligible: false,
+        discount: 0,
+        amountNeeded: 50,
+      },
+      {
+        code: "SAVE10",
+        description: "10% off, up to ₹100",
+        eligible: true,
+        discount: 15,
+        amountNeeded: 0,
+      },
+    ]);
+  });
+
+  it("reports capped savings and chooses the best eligible coupon", () => {
+    expect(couponOptionsFor(1120).find((option) => option.code === "SAVE10")?.discount).toBe(100);
+    expect(bestCouponFor(300)?.code).toBe("FLAT50");
+    expect(bestCouponFor(1120)?.code).toBe("SAVE10");
+  });
+
+  it("does not recommend a coupon for an empty cart", () => {
+    expect(bestCouponFor(0)).toBeUndefined();
   });
 });
 

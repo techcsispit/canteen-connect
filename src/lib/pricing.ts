@@ -23,6 +23,14 @@ export interface Bill {
   couponMessage: string;
 }
 
+export interface CouponOption {
+  code: string;
+  description: string;
+  eligible: boolean;
+  discount: number;
+  amountNeeded: number;
+}
+
 export function findCoupon(code: string): Coupon | undefined {
   return COUPONS[code.trim()];
 }
@@ -33,6 +41,27 @@ export function discountFor(subtotal: number, coupon: Coupon | undefined): numbe
     return subtotal >= coupon.minOrder ? Math.min(coupon.amount, subtotal) : 0;
   }
   return Math.min(Math.round((subtotal * coupon.percent) / 100), coupon.maxDiscount);
+}
+
+export function couponOptionsFor(subtotal: number): CouponOption[] {
+  return Object.entries(COUPONS).map(([code, coupon]) => {
+    const amountNeeded = coupon.kind === "flat" ? Math.max(0, coupon.minOrder - subtotal) : 0;
+    const eligible = subtotal > 0 && amountNeeded === 0;
+    return {
+      code,
+      description: coupon.description,
+      eligible,
+      discount: eligible ? discountFor(subtotal, coupon) : 0,
+      amountNeeded,
+    };
+  });
+}
+
+export function bestCouponFor(subtotal: number): CouponOption | undefined {
+  return couponOptionsFor(subtotal).reduce<CouponOption | undefined>(
+    (best, option) => (option.eligible && (!best || option.discount > best.discount) ? option : best),
+    undefined,
+  );
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
