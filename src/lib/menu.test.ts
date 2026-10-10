@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterMenu, MENU, sortMenu } from "./menu";
+import { filterMenu, type Filters, MENU, sortMenu } from "./menu";
 
 const all = { query: "", category: "All" as const, vegOnly: false };
 
@@ -27,6 +27,16 @@ describe("filterMenu", () => {
     expect(filterMenu(MENU, { ...all, query: "  Masala   Dosa  " }).map((i) => i.name)).toEqual([
       "Masala Dosa",
     ]);
+  });
+});
+
+describe("filterMenu with several filters", () => {
+  it("applies category, veg only and search together", () => {
+    const names = (f: Partial<Filters>) => filterMenu(MENU, { ...all, ...f }).map((i) => i.name);
+    expect(names({ category: "Snacks", vegOnly: true, query: "roll" })).toEqual(["Paneer Tikka Roll"]);
+    expect(names({ category: "Beverages", vegOnly: true, query: "coffee" })).toEqual(["Cold Coffee", "Filter Coffee"]);
+    expect(names({ category: "Snacks", query: "coffee" })).toEqual([]);
+    expect(names({ category: "Snacks", vegOnly: true, query: "coffee" })).toEqual([]);
   });
 });
 
