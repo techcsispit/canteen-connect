@@ -46,6 +46,31 @@ describe("calculateBill", () => {
     expect(calculateBill([{ id: 3, qty: 3 }], MENU, "").delivery).toBe(0);
   });
 
+  it("works out delivery on the amount after discount", () => {
+    // 4 paneer tikka rolls = 320, FLAT50 takes it to 270, so delivery is not free
+    const bill = calculateBill([{ id: 6, qty: 4 }], MENU, "FLAT50");
+    expect(bill).toMatchObject({ subtotal: 320, discount: 50, delivery: 30 });
+  });
+
+  it("works out GST on the amount after discount", () => {
+    // 2 chicken biryani = 280, FLAT50 takes it to 230, GST is 5% of 230
+    const bill = calculateBill([{ id: 3, qty: 2 }], MENU, "FLAT50");
+    expect(bill).toMatchObject({ subtotal: 280, discount: 50, delivery: 30, gst: 11.5, total: 271.5 });
+  });
+
+  it("delivery is free at exactly ₹300 and charged just below it", () => {
+    // 5 masala dosa = 300
+    expect(calculateBill([{ id: 1, qty: 5 }], MENU, "").delivery).toBe(0);
+    // 2 chicken biryani + 1 masala chai = 295
+    expect(calculateBill([{ id: 3, qty: 2 }, { id: 4, qty: 1 }], MENU, "").delivery).toBe(30);
+  });
+
+  it("delivery is free when the discount leaves exactly ₹300", () => {
+    // 3 veg thali + 1 cold coffee = 350, FLAT50 takes it to 300
+    const bill = calculateBill([{ id: 8, qty: 3 }, { id: 7, qty: 1 }], MENU, "FLAT50");
+    expect(bill).toMatchObject({ subtotal: 350, discount: 50, delivery: 0, gst: 15, total: 315 });
+  });
+
   it("empty cart costs nothing", () => {
     expect(calculateBill([], MENU, "SAVE10").total).toBe(0);
   });
