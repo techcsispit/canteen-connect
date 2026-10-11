@@ -32,7 +32,7 @@ export interface CouponOption {
 }
 
 export function findCoupon(code: string): Coupon | undefined {
-  return COUPONS[code.trim()];
+  return COUPONS[code.trim().toUpperCase()];
 }
 
 export function discountFor(subtotal: number, coupon: Coupon | undefined): number {
