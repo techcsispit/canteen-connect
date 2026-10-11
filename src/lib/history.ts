@@ -70,6 +70,25 @@ export function addOrder(history: Order[], order: Order): Order[] {
   return newestFirst([...history, { ...order, items: order.items.map((line) => ({ ...line })) }]);
 }
 
+export function mergeOrders(...histories: Order[][]): Order[] {
+  const ordersById = new Map<string, Order>();
+
+  for (const history of histories) {
+    for (const order of history) {
+      if (!ordersById.has(order.id)) {
+        ordersById.set(order.id, { ...order, items: order.items.map((line) => ({ ...line })) });
+      }
+    }
+  }
+
+  const merged = newestFirst([...ordersById.values()]);
+  const current = histories[0];
+  if (current && merged.length === current.length && merged.every((order, index) => order.id === current[index].id)) {
+    return current;
+  }
+  return merged;
+}
+
 export function orderToCart(order: Order): CartLine[] {
   return order.items.map((line) => ({ ...line }));
 }

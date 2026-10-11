@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addOrder, createOrder, orderToCart, parseCart, parseHistory, type Order } from "./history";
+import { addOrder, createOrder, mergeOrders, orderToCart, parseCart, parseHistory, type Order } from "./history";
 
 const older: Order = {
   id: "older",
@@ -22,6 +22,21 @@ describe("order history", () => {
 
   it("keeps previous orders and puts the newest first", () => {
     expect(addOrder([older], newer)).toEqual([newer, older]);
+  });
+
+  it("reconciles orders created from stale histories in different tabs", () => {
+    const firstTabOrder = createOrder("first-tab", [{ id: 3, qty: 1 }], 177, "2026-01-03T10:00:00.000Z");
+    const secondTabOrder = createOrder("second-tab", [{ id: 4, qty: 2 }], 63, "2026-01-04T10:00:00.000Z");
+    const firstTabHistory = addOrder([older], firstTabOrder);
+    const secondTabHistory = addOrder([older], secondTabOrder);
+
+    expect(mergeOrders(firstTabHistory, secondTabHistory)).toEqual([secondTabOrder, firstTabOrder, older]);
+  });
+
+  it("does not duplicate orders while reconciling repeated storage updates", () => {
+    const current = [newer, older];
+
+    expect(mergeOrders(current, [newer], [older])).toBe(current);
   });
 
   it("creates independent order and reorder snapshots", () => {

@@ -3,7 +3,7 @@ import Cart from "./components/Cart";
 import MenuCard from "./components/MenuCard";
 import Orders from "./components/Orders";
 import { addToCart, changeQty, itemCount, type CartLine } from "./lib/cart";
-import { addOrder, createOrder, orderToCart, parseCart, parseHistory, type Order } from "./lib/history";
+import { createOrder, mergeOrders, orderToCart, parseCart, parseHistory, type Order } from "./lib/history";
 import { CATEGORIES, filterMenu, MENU, sortMenu, type Category, type SortOrder } from "./lib/menu";
 
 const CART_KEY = "canteen-cart";
@@ -27,10 +27,20 @@ export default function App() {
     localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
   }, [orders]);
 
+  useEffect(() => {
+    function syncOrders(event: StorageEvent) {
+      if (event.storageArea !== localStorage || event.key !== ORDERS_KEY) return;
+      setOrders((current) => mergeOrders(current, parseHistory(event.newValue)));
+    }
+
+    window.addEventListener("storage", syncOrders);
+    return () => window.removeEventListener("storage", syncOrders);
+  }, []);
+
   function placeOrder(total: number) {
     const placedAt = new Date().toISOString();
-    const order = createOrder(String(Date.now()), cart, total, placedAt);
-    setOrders((history) => addOrder(history, order));
+    const order = createOrder(crypto.randomUUID(), cart, total, placedAt);
+    setOrders((history) => mergeOrders(history, parseHistory(localStorage.getItem(ORDERS_KEY)), [order]));
     setCart([]);
   }
 
