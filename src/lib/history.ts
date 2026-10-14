@@ -5,6 +5,7 @@ export interface Order {
   items: CartLine[];
   total: number;
   placedAt: string;
+  status?: string;
 }
 
 function normalizeCartLine(value: unknown): CartLine | null {
@@ -35,7 +36,8 @@ function normalizeOrder(value: unknown): Order | null {
 
   const items = normalizeCart(order.items);
   if (items.length === 0) return null;
-  return { id: order.id, items, total: order.total, placedAt: order.placedAt };
+  const status = typeof order.status === "string" ? order.status : undefined;
+  return { id: order.id, items, total: order.total, placedAt: order.placedAt, ...(status ? { status } : {}) };
 }
 
 export function newestFirst(orders: Order[]): Order[] {
@@ -62,8 +64,20 @@ export function parseCart(raw: string | null): CartLine[] {
   }
 }
 
-export function createOrder(id: string, items: CartLine[], total: number, placedAt: string): Order {
-  return { id, items: items.map((line) => ({ ...line })), total, placedAt };
+export function createOrder(
+  id: string,
+  items: CartLine[],
+  total: number,
+  placedAt: string,
+  status?: string
+): Order {
+  return {
+    id,
+    items: items.map((line) => ({ ...line })),
+    total,
+    placedAt,
+    ...(status ? { status } : {}),
+  };
 }
 
 export function addOrder(history: Order[], order: Order): Order[] {
@@ -75,15 +89,30 @@ export function mergeOrders(...histories: Order[][]): Order[] {
 
   for (const history of histories) {
     for (const order of history) {
-      if (!ordersById.has(order.id)) {
-        ordersById.set(order.id, { ...order, items: order.items.map((line) => ({ ...line })) });
-      }
+      ordersById.set(order.id, { ...order, items: order.items.map((line) => ({ ...line })) });
     }
   }
 
   const merged = newestFirst([...ordersById.values()]);
   const current = histories[0];
-  if (current && merged.length === current.length && merged.every((order, index) => order.id === current[index].id)) {
+  if (
+    current &&
+    merged.length === current.length &&
+    merged.every((order, index) => {
+      const existing = current[index];
+      return (
+        order.id === existing.id &&
+        order.total === existing.total &&
+        order.placedAt === existing.placedAt &&
+        order.status === existing.status &&
+        order.items.length === existing.items.length &&
+        order.items.every((line, itemIndex) => {
+          const existingLine = existing.items[itemIndex];
+          return line.id === existingLine.id && line.qty === existingLine.qty;
+        })
+      );
+    })
+  ) {
     return current;
   }
   return merged;

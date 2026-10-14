@@ -33,6 +33,22 @@ describe("coupons", () => {
     expect(findCoupon("FREEFOOD")).toBeUndefined();
   });
 
+  it("coupon codes work in any case", () => {
+    expect(findCoupon("save10")).toEqual(findCoupon("SAVE10"));
+    expect(findCoupon("Save10")).toEqual(findCoupon("SAVE10"));
+    expect(findCoupon("flat50")).toEqual(findCoupon("FLAT50"));
+    expect(findCoupon("  save10  ")).toEqual(findCoupon("SAVE10"));
+  });
+
+  it("lowercase coupons apply the same discount in the bill", () => {
+    const upper = calculateBill([{ id: 3, qty: 2 }], MENU, "FLAT50");
+    const lower = calculateBill([{ id: 3, qty: 2 }], MENU, "flat50");
+    expect(lower).toEqual(upper);
+    expect(calculateBill([{ id: 3, qty: 3 }], MENU, "save10").discount).toBe(
+      calculateBill([{ id: 3, qty: 3 }], MENU, "SAVE10").discount,
+    );
+  });
+
   it("shows coupon eligibility, shortfall and current savings", () => {
     expect(couponOptionsFor(150)).toEqual([
       {

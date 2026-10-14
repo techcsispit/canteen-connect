@@ -39,6 +39,13 @@ describe("order history", () => {
     expect(mergeOrders(current, [newer], [older])).toBe(current);
   });
 
+  it("accepts status updates from the real-time order source", () => {
+    const received = { ...newer, status: "received" };
+    const preparing = { ...newer, status: "preparing" };
+
+    expect(mergeOrders([received], [preparing])).toEqual([preparing]);
+  });
+
   it("creates independent order and reorder snapshots", () => {
     const cart = [{ id: 1, qty: 2 }];
     const order = createOrder("one", cart, 156, older.placedAt);
