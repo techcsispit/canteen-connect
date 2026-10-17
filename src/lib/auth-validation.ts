@@ -16,3 +16,31 @@ export function validateSignupEmail(email: string): { valid: boolean; error?: st
   }
   return { valid: true };
 }
+
+export function getAdminEmails(): string[] {
+  const envEmails = import.meta.env?.VITE_ADMIN_EMAILS;
+  if (!envEmails || typeof envEmails !== "string") {
+    return [];
+  }
+  return envEmails
+    .split(",")
+    .map((e: string) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function isAdminEmail(email?: string | null): boolean {
+  if (!email) return false;
+  const clean = email.trim().toLowerCase();
+  const admins = getAdminEmails();
+  return admins.includes(clean);
+}
+
+export function isVerifiedAdminUser(
+  user?: { email?: string | null; emailVerified?: boolean } | null
+): boolean {
+  if (!user || !user.email || !user.emailVerified) {
+    return false;
+  }
+  return isAdminEmail(user.email);
+}
+
