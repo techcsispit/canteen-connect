@@ -503,7 +503,7 @@ describe("CSV Field Escaping & Sales Report Export", () => {
       const csv = generateOrdersCSV([], testMenu);
       const lines = csv.split("\r\n");
       expect(lines[0]).toBe(
-        "Order ID,Date & Timestamp,Items Summary,Subtotal (₹),Discount (₹),GST (₹),Total Paid (₹),Payment Method,Payment Status,Fulfillment Status"
+        "Order ID,Date & Timestamp,Items Summary,Subtotal (₹),Discount (₹),Delivery Fee (₹),GST (₹),Total Paid (₹),Payment Method,Payment Status,Fulfillment Status"
       );
     });
 
@@ -578,10 +578,37 @@ describe("CSV Field Escaping & Sales Report Export", () => {
       const dataRow = csv.split("\r\n")[1];
       expect(dataRow).toContain("240.00"); // Subtotal
       expect(dataRow).toContain("50.00");  // Discount
+      expect(dataRow).toContain("0.00");   // Delivery Fee
       expect(dataRow).toContain("9.50");   // GST
       expect(dataRow).toContain("199.50"); // Total Paid
       expect(dataRow).toContain("COUNTER");
       expect(dataRow).toContain("PENDING");
+    });
+
+    it("correctly reconciles orders with delivery fee in CSV export", () => {
+      const orders: (Order & { paymentMethod?: string; paymentStatus?: string })[] = [
+        {
+          id: "ORD-DELIVERY",
+          placedAt: "2026-10-18T15:00:00.000Z",
+          items: [{ id: 1, qty: 4 }], // 4x 80 = 320 subtotal
+          // 320 - 50 discount = 270 (< 300 so 30 delivery applies) + 30 delivery + 13.50 GST (5%) = 313.50
+          total: 313.5,
+          status: "completed",
+          paymentMethod: "upi",
+          paymentStatus: "paid",
+        },
+      ];
+
+      const csv = generateOrdersCSV(orders, testMenu);
+      const dataRow = csv.split("\r\n")[1];
+      expect(dataRow).toContain("ORD-DELIVERY");
+      expect(dataRow).toContain("320.00"); // Subtotal
+      expect(dataRow).toContain("50.00");  // Discount
+      expect(dataRow).toContain("30.00");  // Delivery Fee
+      expect(dataRow).toContain("13.50");  // GST
+      expect(dataRow).toContain("313.50"); // Total Paid
+      expect(dataRow).toContain("UPI");
+      expect(dataRow).toContain("PAID");
     });
   });
 

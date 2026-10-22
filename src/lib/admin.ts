@@ -531,6 +531,7 @@ export function generateOrdersCSV(orders: Order[], menu: MenuItem[] = MENU): str
     "Items Summary",
     "Subtotal (₹)",
     "Discount (₹)",
+    "Delivery Fee (₹)",
     "GST (₹)",
     "Total Paid (₹)",
     "Payment Method",
@@ -560,10 +561,74 @@ export function generateOrdersCSV(orders: Order[], menu: MenuItem[] = MENU): str
 
     const totalPaid = typeof order.total === "number" ? order.total : 0;
     const subtotal = itemsSubtotal > 0 ? itemsSubtotal : Math.round((totalPaid / 1.05) * 100) / 100;
-    const calculatedPreTax = Math.round((totalPaid / 1.05) * 100) / 100;
-    const discount = Math.max(0, Math.round((subtotal - calculatedPreTax) * 100) / 100);
-    const taxableAmount = Math.max(0, subtotal - discount);
-    const gst = Math.round(taxableAmount * 0.05 * 100) / 100;
+
+    // Financial reconciliation for discount, delivery fee, and GST.
+    // Standard discounts supported in pricing: 0, FLAT50 (50), and SAVE10 (min(round(subtotal * 0.1), 100)).
+    // Delivery fee is ₹30 for orders under ₹300, or ₹0 for free delivery / counter pickup.
+    const candidateDiscounts = [0];
+    if (subtotal >= 200) {
+      candidateDiscounts.push(50);
+    }
+    candidateDiscounts.push(Math.min(Math.round((subtotal * 10) / 100), 100));
+
+    let discount = 0;
+    let deliveryFee = 0;
+    let gst = 0;
+    let matched = false;
+
+    // Check if totalPaid matches candidate discounts with ₹30 delivery fee
+    for (const d of candidateDiscounts) {
+      const afterDisc = Math.max(0, subtotal - d);
+      if (afterDisc < 300) {
+        const expectedGst = Math.round(afterDisc * 0.05 * 100) / 100;
+        const expectedTotal = Math.round((afterDisc + 30 + expectedGst) * 100) / 100;
+        if (Math.abs(expectedTotal - totalPaid) < 0.05) {
+          discount = d;
+          deliveryFee = 30;
+          gst = expectedGst;
+          matched = true;
+          break;
+        }
+      }
+    }
+
+    // Check if totalPaid matches candidate discounts with ₹0 delivery fee (free delivery / counter orders)
+    if (!matched) {
+      for (const d of candidateDiscounts) {
+        const afterDisc = Math.max(0, subtotal - d);
+        const expectedGst = Math.round(afterDisc * 0.05 * 100) / 100;
+        const expectedTotal = Math.round((afterDisc + expectedGst) * 100) / 100;
+        if (Math.abs(expectedTotal - totalPaid) < 0.05) {
+          discount = d;
+          deliveryFee = 0;
+          gst = expectedGst;
+          matched = true;
+          break;
+        }
+      }
+    }
+
+    // Fallback for custom totals
+    if (!matched) {
+      if (totalPaid > 30) {
+        const preTaxWithDelivery = Math.round(((totalPaid - 30) / 1.05) * 100) / 100;
+        if (preTaxWithDelivery < 300 && preTaxWithDelivery <= subtotal) {
+          deliveryFee = 30;
+          discount = Math.max(0, Math.round((subtotal - preTaxWithDelivery) * 100) / 100);
+          const taxableAmount = Math.max(0, subtotal - discount);
+          gst = Math.round(taxableAmount * 0.05 * 100) / 100;
+          matched = true;
+        }
+      }
+    }
+
+    if (!matched) {
+      const calculatedPreTax = Math.round((totalPaid / 1.05) * 100) / 100;
+      discount = Math.max(0, Math.round((subtotal - calculatedPreTax) * 100) / 100);
+      const taxableAmount = Math.max(0, subtotal - discount);
+      gst = Math.round(taxableAmount * 0.05 * 100) / 100;
+      deliveryFee = 0;
+    }
 
     const rawOrder = order as Order & { paymentMethod?: string; paymentStatus?: string };
     const paymentMethod = rawOrder.paymentMethod ? rawOrder.paymentMethod.toUpperCase() : "COUNTER";
@@ -581,6 +646,7 @@ export function generateOrdersCSV(orders: Order[], menu: MenuItem[] = MENU): str
       formatCSVField(itemsSummary),
       formatCSVField(subtotal.toFixed(2)),
       formatCSVField(discount.toFixed(2)),
+      formatCSVField(deliveryFee.toFixed(2)),
       formatCSVField(gst.toFixed(2)),
       formatCSVField(totalPaid.toFixed(2)),
       formatCSVField(paymentMethod),
