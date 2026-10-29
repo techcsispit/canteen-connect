@@ -6,13 +6,23 @@ import AuthModal from "./components/AuthModal";
 import AdminDashboard from "./components/admin/AdminDashboard";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { addToCart, changeQty, itemCount, type CartLine } from "./lib/cart";
-import { createOrder, mergeOrders, orderToCart, parseCart, parseHistory, type Order } from "./lib/history";
+import {
+  createOrder,
+  mergeOrders,
+  orderHistoryStorageKey,
+  ordersVisibleToUser,
+  orderToCart,
+  parseCart,
+  parseHistory,
+  userOrderHistory,
+  type Order,
+  type UserOrderHistory,
+} from "./lib/history";
 import { CATEGORIES, filterMenu, MENU, sortMenu, type Category, type SortOrder } from "./lib/menu";
 import { saveOrderToDatabase, subscribeUserOrders } from "./lib/orders";
 import { getEffectiveMenu, subscribeMenuStock, type StockOverrides } from "./lib/admin";
 
 const CART_KEY = "canteen-cart";
-const ORDERS_KEY = "canteen-orders";
 
 function CanteenApp() {
   const { user, isAdmin, logout } = useAuth();
@@ -21,7 +31,7 @@ function CanteenApp() {
   const [vegOnly, setVegOnly] = useState(false);
   const [sort, setSort] = useState<SortOrder>("recommended");
   const [cart, setCart] = useState<CartLine[]>(() => parseCart(localStorage.getItem(CART_KEY)));
-  const [orders, setOrders] = useState<Order[]>(() => parseHistory(localStorage.getItem(ORDERS_KEY)));
+  const [orderHistory, setOrderHistory] = useState<UserOrderHistory>({ userId: null, orders: [] });
   const [cartOpen, setCartOpen] = useState(false);
   const [view, setView] = useState<"menu" | "orders" | "admin">("menu");
   const [stockOverrides, setStockOverrides] = useState<StockOverrides>({});
@@ -34,19 +44,41 @@ function CanteenApp() {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
   }, [cart]);
 
-  useEffect(() => {
-    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
-  }, [orders]);
+  const orders = ordersVisibleToUser(orderHistory, user?.uid);
 
   useEffect(() => {
+    if (!user) {
+      setOrderHistory({ userId: null, orders: [] });
+      return;
+    }
+
+    setOrderHistory(
+      userOrderHistory(user.uid, localStorage.getItem(orderHistoryStorageKey(user.uid))),
+    );
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || orderHistory.userId !== user.uid) return;
+    localStorage.setItem(orderHistoryStorageKey(user.uid), JSON.stringify(orderHistory.orders));
+  }, [orderHistory, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const userId = user.uid;
+    const storageKey = orderHistoryStorageKey(userId);
+
     function syncOrders(event: StorageEvent) {
-      if (event.storageArea !== localStorage || event.key !== ORDERS_KEY) return;
-      setOrders((current) => mergeOrders(current, parseHistory(event.newValue)));
+      if (event.storageArea !== localStorage || event.key !== storageKey) return;
+      setOrderHistory((current) =>
+        current.userId === userId
+          ? { ...current, orders: mergeOrders(current.orders, parseHistory(event.newValue)) }
+          : current,
+      );
     }
 
     window.addEventListener("storage", syncOrders);
     return () => window.removeEventListener("storage", syncOrders);
-  }, []);
+  }, [user]);
 
   // Sync real-time orders from Firestore when user is logged in
   useEffect(() => {
@@ -54,9 +86,11 @@ function CanteenApp() {
     const unsubscribe = subscribeUserOrders(
       user.uid,
       (remoteOrders) => {
-        if (remoteOrders.length > 0) {
-          setOrders((current) => mergeOrders(current, remoteOrders));
-        }
+        setOrderHistory((current) =>
+          current.userId === user.uid
+            ? { ...current, orders: mergeOrders(current.orders, remoteOrders) }
+            : current,
+        );
       },
       (err) => {
         console.warn("Real-time orders sync error:", err);
@@ -89,18 +123,22 @@ function CanteenApp() {
     let orderId: string = crypto.randomUUID();
 
     try {
-      // Step 5: Save order to database collection 'orders'
-      // containing: userId, items, totalBill, status: 'received', and timestamp
       const docId = await saveOrderToDatabase(user.uid, cart, total);
-      if (docId) {
-        orderId = docId;
-      }
+      if (docId) orderId = docId;
     } catch (err) {
       console.warn("Failed to push order to Firestore, recording locally:", err);
     }
 
     const order = createOrder(orderId, cart, total, placedAt, "received");
-    setOrders((history) => mergeOrders(history, parseHistory(localStorage.getItem(ORDERS_KEY)), [order]));
+    const storageKey = orderHistoryStorageKey(user.uid);
+    setOrderHistory((current) =>
+      current.userId === user.uid
+        ? {
+            ...current,
+            orders: mergeOrders(current.orders, parseHistory(localStorage.getItem(storageKey)), [order]),
+          }
+        : current,
+    );
     setCart([]);
     return orderId;
   }

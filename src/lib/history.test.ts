@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { addOrder, createOrder, mergeOrders, orderToCart, parseCart, parseHistory, type Order } from "./history";
+import {
+  addOrder,
+  createOrder,
+  mergeOrders,
+  orderHistoryStorageKey,
+  ordersVisibleToUser,
+  orderToCart,
+  parseCart,
+  parseHistory,
+  userOrderHistory,
+  type Order,
+} from "./history";
 import { MENU } from "./menu";
 
 const older: Order = {
@@ -17,6 +28,24 @@ const newer: Order = {
 };
 
 describe("order history", () => {
+  it("uses a separate storage key for each authenticated user", () => {
+    expect(orderHistoryStorageKey("alice-uid")).toBe("canteen-orders:alice-uid");
+    expect(orderHistoryStorageKey("bob-uid")).toBe("canteen-orders:bob-uid");
+    expect(orderHistoryStorageKey("alice-uid")).not.toBe(orderHistoryStorageKey("bob-uid"));
+  });
+
+  it("never exposes cached orders after switching to a different account", () => {
+    const aliceHistory = userOrderHistory("alice-uid", JSON.stringify([older]));
+
+    expect(ordersVisibleToUser(aliceHistory, "alice-uid")).toEqual([older]);
+    expect(ordersVisibleToUser(aliceHistory, "bob-uid")).toEqual([]);
+    expect(ordersVisibleToUser(aliceHistory, undefined)).toEqual([]);
+
+    const bobHistory = userOrderHistory("bob-uid", JSON.stringify([newer]));
+    expect(ordersVisibleToUser(bobHistory, "bob-uid")).toEqual([newer]);
+    expect(ordersVisibleToUser(bobHistory, "alice-uid")).toEqual([]);
+  });
+
   it("adds the first order to empty history", () => {
     expect(addOrder([], older)).toEqual([older]);
   });
