@@ -9,6 +9,25 @@ export interface Order {
   status?: string;
 }
 
+export interface UserOrderHistory {
+  userId: string | null;
+  orders: Order[];
+}
+
+const ORDERS_STORAGE_PREFIX = "canteen-orders:";
+
+export function orderHistoryStorageKey(userId: string): string {
+  return `${ORDERS_STORAGE_PREFIX}${userId}`;
+}
+
+export function userOrderHistory(userId: string, raw: string | null): UserOrderHistory {
+  return { userId, orders: parseHistory(raw) };
+}
+
+export function ordersVisibleToUser(history: UserOrderHistory, userId: string | undefined): Order[] {
+  return userId && history.userId === userId ? history.orders : [];
+}
+
 function normalizeCartLine(value: unknown): CartLine | null {
   if (!value || typeof value !== "object") return null;
   const line = value as Record<string, unknown>;
