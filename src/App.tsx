@@ -6,7 +6,8 @@ import AuthModal from "./components/AuthModal";
 import AdminDashboard from "./components/admin/AdminDashboard";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { addToCart, changeQty, itemCount, type CartLine } from "./lib/cart";
-import { createOrder, mergeOrders, orderToCart, parseCart, parseHistory, type Order } from "./lib/history";
+import { saveConfirmedOrder } from "./lib/checkout";
+import { mergeOrders, orderToCart, parseCart, parseHistory, type Order } from "./lib/history";
 import { CATEGORIES, filterMenu, MENU, sortMenu, type Category, type SortOrder } from "./lib/menu";
 import { saveOrderToDatabase, subscribeUserOrders } from "./lib/orders";
 import { getEffectiveMenu, subscribeMenuStock, type StockOverrides } from "./lib/admin";
@@ -85,24 +86,12 @@ function CanteenApp() {
       throw new Error("Authentication required");
     }
 
-    const placedAt = new Date().toISOString();
-    let orderId: string = crypto.randomUUID();
-
-    try {
-      // Step 5: Save order to database collection 'orders'
-      // containing: userId, items, totalBill, status: 'received', and timestamp
-      const docId = await saveOrderToDatabase(user.uid, cart, total);
-      if (docId) {
-        orderId = docId;
-      }
-    } catch (err) {
-      console.warn("Failed to push order to Firestore, recording locally:", err);
-    }
-
-    const order = createOrder(orderId, cart, total, placedAt, "received");
+    // Firestore is the commit point: only confirm, cache, and clear the cart
+    // after the kitchen-visible order has been saved successfully.
+    const order = await saveConfirmedOrder(saveOrderToDatabase, user.uid, cart, total);
     setOrders((history) => mergeOrders(history, parseHistory(localStorage.getItem(ORDERS_KEY)), [order]));
     setCart([]);
-    return orderId;
+    return order.id;
   }
 
   function reorder(order: Order) {

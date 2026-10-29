@@ -42,7 +42,7 @@ export default function Cart({ cart, menu = MENU, onChange, onClose, onOrderPlac
       setOrderNumber(displayId);
     } catch (err: unknown) {
       console.error("Order placement failed:", err);
-      setError("Failed to place order. Please try again.");
+      setError("Order could not be saved. Your cart is unchanged. Please try again.");
     } finally {
       setSubmitting(false);
     }
