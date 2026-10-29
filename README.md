@@ -67,7 +67,7 @@ To connect your own Firebase project for local development:
      ```bash
      cp .env.example .env
      ```
-   - Paste your Firebase config values into `.env`:
+   - Paste your Firebase config values and optional admin staff emails into `.env`:
      ```env
      VITE_FIREBASE_API_KEY=your_api_key
      VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
@@ -75,9 +75,17 @@ To connect your own Firebase project for local development:
      VITE_FIREBASE_STORAGE_BUCKET=your_project.firebasestorage.app
      VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
      VITE_FIREBASE_APP_ID=your_app_id
+     VITE_ADMIN_EMAILS=canteen@spit.ac.in,admin@spit.ac.in,staff@spit.ac.in
      ```
+   - Any authenticated student account whose email matches one listed in `VITE_ADMIN_EMAILS` (comma-separated) receives staff administrative privileges.
 
-6. **Start the Application**:
+6. **Staff Admin Dashboard & Kitchen Queue**:
+   - Accounts registered under `VITE_ADMIN_EMAILS` have access to the dedicated Admin Panel via the top navigation bar.
+   - **Kitchen Live Queue**: Real-time incoming order tracking with status updates (`received` -> `preparing` -> `ready` -> `completed` -> `cancelled`).
+   - **Menu Manager**: Toggle availability and in-stock / out-of-stock status for canteen menu items.
+   - **Revenue & Analytics**: Total revenue overview, completed order metrics, and daily order history exportable to CSV.
+
+7. **Start the Application**:
    ```bash
    npm run dev
    ```
@@ -86,9 +94,10 @@ To connect your own Firebase project for local development:
 
 - `src/lib/firebase.ts`: Firebase client initialization (Auth & Firestore)
 - `src/lib/orders.ts`: Firestore orders storage & real-time listener
-- `src/lib/auth-validation.ts`: College domain (@spit.ac.in) validation logic
+- `src/lib/auth-validation.ts`: College domain (@spit.ac.in) validation logic and staff admin check (`isAdminEmail`)
 - `src/context/AuthContext.tsx`: React Context for authentication state
 - `src/components/Login.tsx` & `src/components/Signup.tsx`: Authentication UI
+- `src/components/admin/`: Staff admin dashboard, Kitchen Queue, Menu Manager, and Revenue Analytics
 - `src/lib/menu.ts`: menu data, search, filters, sorting
 - `src/lib/cart.ts`: adding and removing items
 - `src/lib/pricing.ts`: coupons, delivery, GST, totals
