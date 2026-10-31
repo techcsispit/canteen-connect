@@ -1,14 +1,24 @@
-import { MENU } from "../lib/menu";
+import { MENU, type MenuItem } from "../lib/menu";
 import type { Order } from "../lib/history";
+import OrderTracker from "./OrderTracker";
 
 interface Props {
   orders: Order[];
   onReorder: (order: Order) => void;
   userEmail?: string | null;
   onOpenAuth?: () => void;
+  menu?: MenuItem[];
+  onRateItem?: (item: { id: number; name: string; emoji: string }) => void;
 }
 
-export default function Orders({ orders, onReorder, userEmail, onOpenAuth }: Props) {
+export default function Orders({
+  orders,
+  onReorder,
+  userEmail,
+  onOpenAuth,
+  menu = MENU,
+  onRateItem,
+}: Props) {
   return (
     <div className="orders-container">
       {!userEmail && (
@@ -40,19 +50,36 @@ export default function Orders({ orders, onReorder, userEmail, onOpenAuth }: Pro
                 </div>
                 <strong>₹{order.total.toFixed(2)}</strong>
               </div>
+
+              <OrderTracker status={order.status || "received"} />
+
               <ul className="order-items">
                 {order.items.map((line) => {
-                  const item = MENU.find((menuItem) => menuItem.id === line.id);
+                  const item = menu.find((menuItem) => menuItem.id === line.id);
                   return (
-                    <li key={line.id}>
-                      {line.qty} × {item?.name ?? `Item ${line.id}`}
+                    <li key={line.id} className="order-item-row">
+                      <span>
+                        {line.qty} × {item?.name ?? `Item ${line.id}`}
+                      </span>
+                      {onRateItem && item && (
+                        <button
+                          type="button"
+                          className="item-rate-action-btn"
+                          onClick={() => onRateItem({ id: item.id, name: item.name, emoji: item.emoji })}
+                        >
+                          ★ Rate
+                        </button>
+                      )}
                     </li>
                   );
                 })}
               </ul>
-              <button className="reorder" onClick={() => onReorder(order)}>
-                Reorder
-              </button>
+
+              <div className="order-actions">
+                <button className="reorder" onClick={() => onReorder(order)}>
+                  Reorder
+                </button>
+              </div>
             </article>
           ))}
         </div>

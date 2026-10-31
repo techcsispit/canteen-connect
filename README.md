@@ -77,7 +77,13 @@ To connect your own Firebase project for local development:
      VITE_FIREBASE_APP_ID=your_app_id
      ```
 
-6. **Start the Application**:
+6. **Student Experience Suite**:
+   - **Dietary & Allergen Preferences**: Filter items by Jain Friendly (`jain`), 100% Vegan (`vegan`), Gluten Conscious (`glutenFree`), or High Protein (`highProtein`).
+   - **Favorites & Bookmarks**: Tap the heart button on any dish to save it to your personal favorites for one-click access across sessions.
+   - **Dish Ratings & Student Feedback**: View community star ratings, popular tags (e.g. `Crispy`, `Fresh & Hot`, `Great Value`), and submit reviews on ordered dishes.
+   - **Order Tracker Pipeline**: Multi-step visual progress status for incoming orders (`received` -> `preparing` -> `ready` -> `completed` -> `cancelled`).
+
+7. **Start the Application**:
    ```bash
    npm run dev
    ```
@@ -87,8 +93,15 @@ To connect your own Firebase project for local development:
 - `src/lib/firebase.ts`: Firebase client initialization (Auth & Firestore)
 - `src/lib/orders.ts`: Firestore orders storage & real-time listener
 - `src/lib/auth-validation.ts`: College domain (@spit.ac.in) validation logic
+- `src/lib/dietary.ts`: Dietary preferences catalog, validation, and multi-facet filtering
+- `src/lib/favorites.ts`: Favorites bookmarking and storage abstraction
+- `src/lib/ratings.ts`: Student reviews and weighted rating analytics
 - `src/context/AuthContext.tsx`: React Context for authentication state
 - `src/components/Login.tsx` & `src/components/Signup.tsx`: Authentication UI
+- `src/components/DietaryFilterBar.tsx`: Dietary chips and favorites filter toolbar
+- `src/components/ItemRatingBadge.tsx`: Visual star ratings and review trigger
+- `src/components/ReviewModal.tsx`: Interactive student rating and feedback form
+- `src/components/OrderTracker.tsx`: Visual multi-step order lifecycle tracker
 - `src/lib/menu.ts`: menu data, search, filters, sorting
 - `src/lib/cart.ts`: adding and removing items
 - `src/lib/pricing.ts`: coupons, delivery, GST, totals

@@ -3,13 +3,18 @@ import Cart from "./components/Cart";
 import MenuCard from "./components/MenuCard";
 import Orders from "./components/Orders";
 import AuthModal from "./components/AuthModal";
+import ReviewModal from "./components/ReviewModal";
+import DietaryFilterBar from "./components/DietaryFilterBar";
 import AdminDashboard from "./components/admin/AdminDashboard";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { addToCart, changeQty, itemCount, type CartLine } from "./lib/cart";
 import { createOrder, mergeOrders, orderToCart, parseCart, parseHistory, type Order } from "./lib/history";
-import { CATEGORIES, filterMenu, MENU, sortMenu, type Category, type SortOrder } from "./lib/menu";
+import { CATEGORIES, filterMenu, MENU, sortMenu, type Category, type SortOrder, type MenuItem } from "./lib/menu";
 import { saveOrderToDatabase, subscribeUserOrders } from "./lib/orders";
 import { getEffectiveMenu, subscribeMenuStock, type StockOverrides } from "./lib/admin";
+import { filterByDietary, type DietaryTag } from "./lib/dietary";
+import { isFavorite, loadFavorites, saveFavorites, toggleFavorite } from "./lib/favorites";
+import { addReview, loadReviews, type Review } from "./lib/ratings";
 
 const CART_KEY = "canteen-cart";
 const ORDERS_KEY = "canteen-orders";
@@ -26,6 +31,13 @@ function CanteenApp() {
   const [view, setView] = useState<"menu" | "orders" | "admin">("menu");
   const [stockOverrides, setStockOverrides] = useState<StockOverrides>({});
 
+  // Student Experience Suite state: Favorites, Dietary Tags, and Reviews
+  const [favorites, setFavorites] = useState<number[]>(() => loadFavorites());
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [selectedDietaryTags, setSelectedDietaryTags] = useState<DietaryTag[]>([]);
+  const [reviews, setReviews] = useState<Review[]>(() => loadReviews());
+  const [reviewingItem, setReviewingItem] = useState<{ id: number; name: string; emoji: string } | null>(null);
+
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authNotice, setAuthNotice] = useState<string | undefined>();
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
@@ -37,6 +49,10 @@ function CanteenApp() {
   useEffect(() => {
     localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
   }, [orders]);
+
+  useEffect(() => {
+    saveFavorites(favorites);
+  }, [favorites]);
 
   useEffect(() => {
     function syncOrders(event: StorageEvent) {
@@ -79,6 +95,27 @@ function CanteenApp() {
     setAuthModalOpen(true);
   }
 
+  function handleToggleDietaryTag(tag: DietaryTag) {
+    setSelectedDietaryTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  }
+
+  function handleToggleFavorite(itemId: number) {
+    setFavorites((prev) => toggleFavorite(prev, itemId));
+  }
+
+  function handleReviewSubmit(reviewData: {
+    itemId: number;
+    userEmail: string;
+    rating: number;
+    tags: string[];
+    comment: string;
+  }) {
+    const newRev = addReview(reviewData);
+    setReviews((prev) => [newRev, ...prev]);
+  }
+
   async function placeOrder(total: number): Promise<string> {
     if (!user) {
       openAuth("Please log in with your college email (@spit.ac.in) to place your order.");
@@ -89,8 +126,6 @@ function CanteenApp() {
     let orderId: string = crypto.randomUUID();
 
     try {
-      // Step 5: Save order to database collection 'orders'
-      // containing: userId, items, totalBill, status: 'received', and timestamp
       const docId = await saveOrderToDatabase(user.uid, cart, total);
       if (docId) {
         orderId = docId;
@@ -112,7 +147,13 @@ function CanteenApp() {
   }
 
   const effectiveMenu = getEffectiveMenu(MENU, stockOverrides);
-  const items = filterMenu(sortMenu(effectiveMenu, sort), { query, category, vegOnly });
+  let baseItems = filterMenu(sortMenu(effectiveMenu, sort), { query, category, vegOnly });
+
+  if (favoritesOnly) {
+    baseItems = baseItems.filter((item) => isFavorite(favorites, item.id));
+  }
+
+  const items = filterByDietary(baseItems, selectedDietaryTags);
 
   return (
     <>
@@ -164,6 +205,8 @@ function CanteenApp() {
             onReorder={reorder}
             userEmail={user?.email}
             onOpenAuth={() => openAuth("Sign in with your SPIT college email to view your synced orders.")}
+            menu={effectiveMenu}
+            onRateItem={(item) => setReviewingItem(item)}
           />
         ) : (
           <>
@@ -194,8 +237,20 @@ function CanteenApp() {
               ))}
             </nav>
 
+            <DietaryFilterBar
+              selectedTags={selectedDietaryTags}
+              onToggleTag={handleToggleDietaryTag}
+              favoritesOnly={favoritesOnly}
+              onToggleFavoritesOnly={() => setFavoritesOnly((prev) => !prev)}
+              favoritesCount={favorites.length}
+            />
+
             {items.length === 0 ? (
-              <p className="empty">Nothing matches that. Try another search.</p>
+              <p className="empty">
+                {favoritesOnly
+                  ? "No favorited items match the current filters. Tap the heart on any item to save it!"
+                  : "Nothing matches that. Try another search or filter."}
+              </p>
             ) : (
               <div className="grid">
                 {items.map((item) => (
@@ -205,6 +260,16 @@ function CanteenApp() {
                     qty={cart.find((l) => l.id === item.id)?.qty ?? 0}
                     onAdd={() => setCart(addToCart(cart, item.id))}
                     onChange={(delta) => setCart(changeQty(cart, item.id, delta))}
+                    isFavorite={isFavorite(favorites, item.id)}
+                    onToggleFavorite={() => handleToggleFavorite(item.id)}
+                    reviews={reviews}
+                    onOpenReviewModal={() => {
+                      if (!user) {
+                        openAuth("Sign in with your SPIT college email to leave a review.");
+                        return;
+                      }
+                      setReviewingItem({ id: item.id, name: item.name, emoji: item.emoji });
+                    }}
                   />
                 ))}
               </div>
@@ -221,6 +286,17 @@ function CanteenApp() {
           onClose={() => setCartOpen(false)}
           onOrderPlaced={placeOrder}
           onOpenAuth={() => openAuth("Please log in with your college email (@spit.ac.in) to place your order.")}
+        />
+      )}
+
+      {reviewingItem && (
+        <ReviewModal
+          itemId={reviewingItem.id}
+          itemName={reviewingItem.name}
+          itemEmoji={reviewingItem.emoji}
+          userEmail={user?.email || "student@spit.ac.in"}
+          onClose={() => setReviewingItem(null)}
+          onSubmit={handleReviewSubmit}
         />
       )}
 
